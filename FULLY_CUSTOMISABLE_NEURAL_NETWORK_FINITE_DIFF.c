@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <assert.h>
 
+//THIS CODE IS ESSENTIALLY THE BASIS OF THE IMPLEMENTATION OF A NEURAL NETWORK USING THE METHOD OF FINITE DIFFERENCES TO FIND THE GRADIENT
+
+//DEFINIG THE STRUCTURE OF A MATRIX AS AN ARRAY OF FLOATS , THE DIMENSIONS OF THE MATRIX 
+//AND THE STRIDE IN CASE WE WANT TO EXTRACT SUBMATRICES
 typedef struct {
     size_t rows   ;  
     size_t cols    ; 
@@ -12,12 +16,17 @@ typedef struct {
     float  *es    ;  
 }MAT ; 
 
+
+//DEFINING THE STRUCTURE OF A NEURAL NETWORK AS THREE ARRAYS OF MATRICES (ACTIVATION "as" /  WEIGHTS "ws / BIASES "bs" )
+
 typedef struct NN {
     size_t count ;
     MAT *as ;
     MAT *bs ; 
     MAT *ws ;  
 }NN ; 
+
+//MACRO DEFINITION THAT CAN MAKE THE CODE SIMPLER AND MORE READABLE 
 
 #define MAT_AT(m , i , j ) (m).es[(i)*(m).cols + j ] 
 
@@ -31,14 +40,32 @@ typedef struct NN {
 
 #define NN_PRINT(nn)  nn_print (nn , #nn) ; 
 
+
+// "arch" REFERS TO THE ARCHITECTURE OF THE NEURAL NETWORK , THE ith ELEMENT OF THE LIST REFERS TO THE NUMBER OF NEURONS IN THE ith LAYER
 size_t arch[] = {INPUT_SIZE , 8, OUTPUT_SIZE } ; 
 
+//"arch_count" IS THE SIZE OF "arch" <-> IT IS THE NUMBER OF LAYERS IN THE NEURAL NETWORK 
 size_t arch_count = sizeof (arch)/ sizeof (arch[0]) ; 
 
+//"eps" IS A CONSTANT THAT WE WILL BE USING TO FIND THE GRADIENT OF THE COST FUNCTION USING THE FINITE DIFFERENTIATION METHOD 
 float eps =  1e-1 ; 
 
+//"alpha" <->HYPER_PARAMETER REFERS TO THE LEARNING RATE OF THE NEURAL NETWORK 
 float alpha = 1e-1 ; 
 
+
+
+
+
+//=============================FUNCTIONS_FOR===================================
+//--------------------------------LINEAR---------------------------------------
+//================================ALGEBRA======================================
+
+
+
+
+
+//MAT_FILL HAS THE ROLE OF FILLING A MATRICE WITH RANDOM FLOATS BETWEEN 0 AND 1 
 float randf(){
     return (float)rand ()/RAND_MAX ; 
 }
@@ -51,6 +78,7 @@ void MAT_FILL(MAT a ){
     }
 }
 
+//MAT_SUM <-> a <- a+b 
 void MAT_SUM (MAT a , MAT b ){
     assert(a.rows== b.rows ) ; 
     assert(a.cols== b.cols) ; 
@@ -62,6 +90,8 @@ void MAT_SUM (MAT a , MAT b ){
     }
 }
 
+
+//MAT_PRODUCT <-> DST = A . B 
 void MAT_PRODUCT(MAT dst , MAT a , MAT b  ){
     assert (dst.rows == a.rows); 
     assert (dst.cols==b.cols) ; 
@@ -76,6 +106,10 @@ void MAT_PRODUCT(MAT dst , MAT a , MAT b  ){
     }
 }
 
+
+
+//WE WILL BE USING INSTEAD THE MACRO MAT_PRINT(MAT M) THAT WILL REFER TO THE FUNCTION print_Matrix 
+//YOU CAN SEE THE IMPLEMENTATION IN THE EXEMPLES.C FILE "IF IT'S STILL NOT THERE IT MEANS I AM STILL WORKING ON THEM :)" 
 void print_Matrix(MAT m , char* name , int padding  ){
     
     printf("%*s%s = \n" , (int)padding , "" , name) ; 
@@ -92,6 +126,12 @@ void print_Matrix(MAT m , char* name , int padding  ){
 
 }
 
+//=============================FUNCTIONS_TO===================================
+//-----------------------------MANIPULATE_THE---------------------------------
+//=============================NEURAL_NETWORK=================================
+
+
+//MAT_SIGMOID <-> "a an element of MAT m -> a = sigmoid (a)"
 float sigmoidf(float x ){
     return (float)1/(float) (1 + exp (-x)) ; 
 }
@@ -104,6 +144,7 @@ void MAT_SIGMOID (MAT m){
 }
 
 
+//MAT_COPY <-> COPIES A IN DST 
 void MAT_COPY (MAT dst , MAT a ){
     assert (dst.cols == a.cols) ; 
     assert (dst.rows == a.rows ) ;
@@ -114,6 +155,7 @@ void MAT_COPY (MAT dst , MAT a ){
     }
 }
 
+//MAT_ALLOC <-> ALLOCATES MEAMORY TO THE MATRICES 
 MAT MAT_ALLOC (int rows , int cols ){
     MAT m ; 
     m.rows = rows ;
@@ -121,15 +163,21 @@ MAT MAT_ALLOC (int rows , int cols ){
     m.es = (float *)malloc (sizeof (m.es) * rows * cols )  ;
     return m ; 
 }
+
+
+//NN_OUTPUT <-> RETURN THE OUTPUT LAYER OF THE NEURAL NETWORK NN 
 MAT NN_OUTPUT (NN nn ){
     return nn.as[(nn.count)] ; 
 }
 
 
+//NN_INPUT <-> RETURN THE INPUT LAYER OF THE NEURAL NETWORK 
 MAT NN_INPUT (NN nn ){
     return nn.as[0] ; 
 } 
 
+
+//NN_ALLOC <-> ALLOCATES MEMORY TO THE NEURAL NETWORK 
 NN NN_ALLOC(size_t *arch , size_t arch_count ){
     assert (arch_count > 0) ; 
     NN nn ; 
@@ -151,6 +199,9 @@ NN NN_ALLOC(size_t *arch , size_t arch_count ){
     return nn ; 
 }
 
+
+//INSTEAD WE WILL BE USING THE MACRO DEFINED NN_PRINT(MAT M) WHICH WILL REFER TO nn_print 
+//YOU CAN SEE THE IMPLEMENTATION IN THE EXEMPLES.C FILE "IF IT'S STILL NOT THERE IT MEANS I AM STILL WORKING ON THEM :)" 
 void nn_print(NN nn , const char* name ){
     printf("NEURAL NETWORK %s = [\n" , name ) ;
     char buffer[256] ; 
@@ -176,13 +227,15 @@ void nn_print(NN nn , const char* name ){
 }
 
 
+
+//NN_RAND <-> FILLS THE MATRICES OF THE NEURAL NETWORK WITH RANDOM FLOATS VARYING BETWEEN 0 AND 1 
 void NN_RAND (NN nn ){
     for (int i = 0 ; i < nn.count  ; i ++ ){
         MAT_FILL(nn.ws[i]) ; 
         MAT_FILL(nn.bs[i]) ; 
     }
 }
-
+//NN_FORWARD <-> COMPUTES THE FORWARD PROPAGATION OF THE NEURAL NETWORK 
 void NN_FORWARD (NN m ){
     for (int i = 0 ; i < m.count ; ++i ){
        MAT_PRODUCT(m.as[i+1] , m.as[i] , m.ws[i]) ; 
@@ -194,6 +247,8 @@ void NN_FORWARD (NN m ){
 }
 
 
+
+//NN_COST <-> COMPUTES THE COST OF A NEURAL NETWORK GIVEN INPUT X AND EXPECTED OUTPUT Y 
 float NN_COST (NN nn , MAT X , MAT Y ){
     assert(X.rows == Y.rows ) ;
     assert(NN_OUTPUT(nn).rows == Y.rows ) ; 
@@ -215,6 +270,7 @@ float NN_COST (NN nn , MAT X , MAT Y ){
 }
 
 
+//NN_GRADIENT <-> COMPUTES THE GRADIENT MATRICES OF THE NEURAL NETWORK USING FINITE DIFFERENTIATION
 void NN_GRADIENT (NN nn , NN g , MAT X , MAT Y ){
     float saved ; 
     float c = NN_COST(nn , X , Y ) ;
@@ -241,6 +297,8 @@ void NN_GRADIENT (NN nn , NN g , MAT X , MAT Y ){
 }
 
 
+
+//NN_LEARN <-> CHANGES THE NEURAL NETWORK'S PARAMETERS (W[] AND B[] ) TO REDUCE THE COST FUNCTION
 void NN_LEARN(NN nn , NN g , float alpha  , MAT X , MAT Y){
     for (int i = 0 ; i <nn.count ; i ++ ){
         for(int j = 0 ; j  < nn.ws[i].rows ; j ++ ){
@@ -258,35 +316,3 @@ void NN_LEARN(NN nn , NN g , float alpha  , MAT X , MAT Y){
 }
 
 
-int main(void ){
-    float f1[] ={
-        0 , 0, 
-        0 , 1 , 
-        1 , 0 , 
-        1 , 1, 
-    } ; 
-    float f2[] = {
-        0 , 1 , 1 , 0
-    } ; 
-
-    MAT X ={.rows = training_size , .cols = INPUT_SIZE , .es = f1 } ; 
-    MAT Y ={.rows = training_size , .cols = OUTPUT_SIZE , .es = f2} ; 
-    NN g = NN_ALLOC (arch , arch_count) ; 
-    NN nn = NN_ALLOC (arch , arch_count ) ;
-    NN_RAND(g) ;  
-    NN_RAND(nn) ; 
-    nn.as[0] = X ; 
-    
-    for (int i = 0; i < 100000*4 ; i ++ ){
-        NN_GRADIENT(nn , g , X , Y ) ; 
-        NN_LEARN(nn ,g , alpha , X , Y ) ; 
-        printf("%f  \n" , NN_COST(nn , X , Y )) ; 
-    }
-    MAT_PRINT(Y) ; 
-    MAT_PRINT(nn.as[nn.count]) ; 
-    NN_PRINT(nn) ; 
-   
-
-
-    
-}
