@@ -263,7 +263,7 @@ for (int i = 0 ; i < m.count ; ++i ){
 
 
 //NN_COST <-> COMPUTES THE COST OF A NEURAL NETWORK GIVEN INPUT X AND EXPECTED OUTPUT Y 
-float NN_COST (NN nn , MAT X , MAT Y ){
+float NN_COST (NN nn , MAT X , MAT Y , MAT ti , MAT to ){
     assert(X.rows == Y.rows ) ;
     float cost = 0 ; 
     float diff ; 
@@ -284,7 +284,7 @@ float NN_COST (NN nn , MAT X , MAT Y ){
 
 
 //NN_GRADIENT <-> COMPUTES THE GRADIENT MATRICES OF THE NEURAL NETWORK USING FINITE DIFFERENTIATION
-void NN_GRADIENT (NN nn , NN g , MAT X , MAT Y ){
+void NN_GRADIENT (NN nn , NN g , MAT X , MAT Y, MAT ti , MAT to  ){
     float saved ; 
     float c = NN_COST(nn , X , Y , ti , to ) ;
     for (int i = 0 ; i <nn.count ; i ++ ){
