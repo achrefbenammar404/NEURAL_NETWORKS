@@ -184,6 +184,12 @@ MAT NN_INPUT (NN nn ){
     return nn.as[0] ; 
 } 
 
+//NN_ROW copies the rowth row in dst 
+void MAT_ROW (MAT dst , MAT src , int row ){
+    for (int i = 0 ; i < src.cols  ;i ++ ){
+        MAT_AT(dst , 0 , i ) = MAT_AT (src , row ,  i ) ;  
+    }
+}
 
 //NN_ALLOC <-> ALLOCATES MEMORY TO THE NEURAL NETWORK 
 NN NN_ALLOC(size_t *arch , size_t arch_count ){
@@ -193,18 +199,18 @@ NN NN_ALLOC(size_t *arch , size_t arch_count ){
     nn.as =(MAT*) malloc (sizeof (MAT) * (nn.count +1) ) ; 
     nn.bs =(MAT*)malloc (sizeof(MAT) * nn.count ) ; 
     nn.ws =(MAT*)malloc (sizeof (MAT)*nn.count) ; 
-    nn.as[0] = MAT_ALLOC(training_size , arch[0] ) ;
+    nn.as[0] = MAT_ALLOC(1 , arch[0] ) ;
     for (int i = 1 ; i < arch_count ; i ++ ) {
         nn.ws[i-1] = MAT_ALLOC(nn.as[i-1].cols , arch[i]) ; 
-        nn.bs[i-1] = MAT_ALLOC(training_size , arch[i]) ; 
-        nn.as[i]   = MAT_ALLOC(training_size , arch[i]) ; 
+        nn.bs[i-1] = MAT_ALLOC(1, arch[i]) ; 
+        nn.as[i]   = MAT_ALLOC(1 , arch[i]) ; 
         MAT_FILL(nn.as[i]) ; 
         MAT_FILL(nn.ws[i-1]) ; 
         MAT_FILL(nn.bs[i-1]) ; 
 
 
     }
-    return nn ; 
+    return nn ;  
 }
 
 
@@ -245,7 +251,7 @@ void NN_RAND (NN nn ){
 }
 //NN_FORWARD <-> COMPUTES THE FORWARD PROPAGATION OF THE NEURAL NETWORK 
 void NN_FORWARD (NN m ){
-    for (int i = 0 ; i < m.count ; ++i ){
+for (int i = 0 ; i < m.count ; ++i ){
        MAT_PRODUCT(m.as[i+1] , m.as[i] , m.ws[i]) ; 
        MAT_SUM (m.as[i+1] , m.bs[i]) ; 
         MAT_SIGMOID(m.as[i+1]) ;
@@ -259,20 +265,19 @@ void NN_FORWARD (NN m ){
 //NN_COST <-> COMPUTES THE COST OF A NEURAL NETWORK GIVEN INPUT X AND EXPECTED OUTPUT Y 
 float NN_COST (NN nn , MAT X , MAT Y ){
     assert(X.rows == Y.rows ) ;
-    assert(NN_OUTPUT(nn).rows == Y.rows ) ; 
-    assert(NN_OUTPUT(nn).cols == Y.cols ) ;  
     float cost = 0 ; 
     float diff ; 
 
-    NN_FORWARD(nn) ; 
-    
-     
-    for (int i = 0 ; i < NN_OUTPUT(nn).rows ; i ++){ 
-        for (int j = 0 ; j < NN_OUTPUT(nn).cols ; j ++ ){
-            diff =  MAT_AT(NN_OUTPUT(nn) , i , j ) - MAT_AT(Y , i , j ) ;              
-            cost +=  diff * diff ; 
+    for (int sample = 0 ; sample < training_size ; sample ++ ){
+        MAT_ROW (ti , X , sample) ; 
+        MAT_ROW (to , Y , sample) ; 
+        
+        nn.as[0] = ti ; 
+        NN_FORWARD(nn) ; 
+        for (int i = 0 ; i < OUTPUT_SIZE ; i ++ ){
+            diff = MAT_AT(NN_OUTPUT(nn) , 0 , i) - MAT_AT(ti , 0 , i) ; 
+            cost += diff * diff ; 
         }
-
     }
     return cost / (OUTPUT_SIZE * training_size)    ; 
 }
@@ -281,14 +286,14 @@ float NN_COST (NN nn , MAT X , MAT Y ){
 //NN_GRADIENT <-> COMPUTES THE GRADIENT MATRICES OF THE NEURAL NETWORK USING FINITE DIFFERENTIATION
 void NN_GRADIENT (NN nn , NN g , MAT X , MAT Y ){
     float saved ; 
-    float c = NN_COST(nn , X , Y ) ;
+    float c = NN_COST(nn , X , Y , ti , to ) ;
     for (int i = 0 ; i <nn.count ; i ++ ){
         for(int j = 0 ; j  < (nn.ws[i]).rows ; j ++ ){
             for (int k = 0 ; k  < (nn.ws[i]).cols ; k ++ ){
                 saved = MAT_AT( nn.ws[i] , j , k ) ; 
                 MAT_AT( nn.ws[i] , j , k ) = MAT_AT( nn.ws[i] , j , k )+ eps ; 
          
-                MAT_AT((g.ws[i]) , j , k ) = (NN_COST(nn , X , Y ) - c) /eps  ; 
+                MAT_AT((g.ws[i]) , j , k ) = (NN_COST(nn , X , Y , ti , to  ) - c) /eps  ; 
                 MAT_AT(nn.ws[i] , j , k ) = saved ; 
             }
         }
@@ -296,7 +301,7 @@ void NN_GRADIENT (NN nn , NN g , MAT X , MAT Y ){
             for (int k = 0 ; k < nn.bs[i].cols ; k ++ ){
                 saved = MAT_AT( nn.bs[i] , j , k ) ; 
                 MAT_AT( nn.bs[i] , j , k ) += eps ; 
-                MAT_AT((g).bs[i] , j , k ) = (NN_COST(nn , X , Y )-c)/eps ; 
+                MAT_AT((g).bs[i] , j , k ) = (NN_COST(nn , X , Y , ti , to )-c)/eps ; 
                 MAT_AT( nn.bs[i] , j , k ) = saved ; 
             }
         }
