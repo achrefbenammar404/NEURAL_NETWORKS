@@ -367,39 +367,3 @@ void NN_LEARN(NN nn , NN g , float alpha  , MAT X , MAT Y){
     
 }
 
-int main(void ){
-    float f1[] ={
-        0 , 0, 
-        0 , 1 , 
-        1 , 0 , 
-        1 , 1, 
-    } ; 
-    float f2[] = {
-        0 , 1 , 1 , 1
-    } ; 
-    srand(time(0)) ; 
-    MAT X ={.rows = training_size , .cols = INPUT_SIZE , .es = f1 } ; 
-    MAT Y ={.rows = training_size , .cols = OUTPUT_SIZE , .es = f2} ; 
-    MAT ti ={.rows = 1 , .cols = INPUT_SIZE , .es = (float*) malloc (sizeof (float)*INPUT_SIZE)} ; 
-    MAT to ={.rows = 1 , .cols = INPUT_SIZE , .es = (float*) malloc (sizeof(float)*OUTPUT_SIZE)} ; 
-    NN g = NN_ALLOC (arch , arch_count) ; 
-    NN nn = NN_ALLOC (arch , arch_count ) ;
-    NN_RAND(g) ;  
-    NN_RAND(nn) ; 
-    NN_PRINT(nn) ; 
-    for (int i = 0; i < 5000; i ++ ){
-        NN_BACK_PROP(nn , g , X , Y ) ; 
-        NN_LEARN(nn , g , alpha , X , Y) ; 
-        printf("c : %f\n" , NN_COST(nn , X , Y , ti , to )) ; 
-    }
-    float f1_test [] = {0 , 0 } ; 
-    float f2_test [] = {0} ; 
-    MAT X_test  = {.rows = 1 , .cols = INPUT_SIZE , .es = f1_test   } ; 
-    MAT Y_test  ={.rows = 1 , .cols = OUTPUT_SIZE , .es = f2_test  } ; 
-
-
-    
-   
- 
-    
-}
